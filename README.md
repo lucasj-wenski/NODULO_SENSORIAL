@@ -5,7 +5,7 @@ Este projeto integra um sistema de automação para estufas baseado em monitoram
 
 ## Links do Google Script
 * **Script (Somente Leitura):** [https://script.google.com/d/1UWI9E0Gvq_1RzeslzVvbP4jJjp59GRPGw0G1O43BsWVrXNFKmn7tp8d9/edit?usp=sharing]
-* * **Site:** [https://script.google.com/macros/s/AKfycbxbeYkmxLtzrdt7WGx2PgVb7fc_UVgBTdQXTueUipQH_OoCT2Z_4wAQcTXXDWwtDb6IGw/exec]
+* **Site:** [https://script.google.com/macros/s/AKfycbxbeYkmxLtzrdt7WGx2PgVb7fc_UVgBTdQXTueUipQH_OoCT2Z_4wAQcTXXDWwtDb6IGw/exec]
 
 ## Estrutura do Repositório
 
