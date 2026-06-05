@@ -6,7 +6,7 @@ Este projeto implementa um sistema de aquisição de dados via Internet das Cois
 ## Estrutura do Repositório
 - `Código.gs`: Backend e API (Google Apps Script).
 - `index.html`: Interface de usuário (Dashboard).
-- `esp.c++`: Código fonte do microcontrolador (ESP32).
+- `esp.ino`: Código fonte do microcontrolador (ESP32).
 
 ## Detalhamento dos Componentes
 
