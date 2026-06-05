@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <title>Nodo Sensorial para Smart Cities - Estufa CESF</title>
+  <style>
+    /* --- ESTILO GERAL --- */
+    body { background-color: #000; color: #fff; font-family: 'Orbitron', sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    canvas#malha-fundo { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at 50% 50%, #1a052e 0%, #000000 90%); }
+    #content-wrapper { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* Header */
+    .header { background: linear-gradient(90deg, rgba(70,0,100,0.85) 0%, rgba(30,0,50,0.85) 100%); border-bottom: 2px solid #b05bff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 20px rgba(176, 91, 255, 0.3); backdrop-filter: blur(5px); position: relative; z-index: 20; }
+    .brand-area { display: flex; align-items: center; gap: 15px; }
+    .satellite-icon { font-size: 28px; animation: floatOrbit 6s infinite linear; filter: drop-shadow(0 0 5px cyan); }
+    .brand-text { font-size: 1.3em; font-weight: bold; letter-spacing: 1px; color: #e0e0e0; text-shadow: 0 0 5px #b05bff; }
+    .brand-subtitle { font-size: 0.6em; color: #00d4ff; display: block; margin-top: 5px; letter-spacing: 2px; }
+    .info-area { text-align: right; font-family: 'Roboto', sans-serif; font-size: 0.9em; color: #aaa; }
+    #relogio-local { font-size: 1.1em; color: #fff; font-weight: bold; }
+    .location-text { color: #00e5ff; font-weight: bold; margin-top: 4px; font-size: 0.85em; }
+
+    .external-weather-bar { background: rgba(0, 0, 0, 0.8); border-bottom: 1px solid #333; padding: 10px; text-align: center; font-size: 0.9em; color: #ccc; display: flex; justify-content: center; gap: 30px; font-family: 'Roboto', sans-serif; position: relative; z-index: 20; }
+    .ext-data { color: #b05bff; font-weight: bold; margin-left: 5px; }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 30px 20px; overflow-y: auto; }
+    .main-content > * { flex-shrink: 0; } /* FIX: IMPEDE QUE A SIRENE FIQUE OVAL E O RADAR SUMA */
+
+    /* SIRENE */
+    .siren-container { width: 80px; height: 80px; margin-bottom: 30px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; background: #111; border: 4px solid #333; box-shadow: 0 0 20px #000; transition: all 0.3s; }
+    .siren-light { width: 100%; height: 100%; border-radius: 50%; position: absolute; top: 0; left: 0; opacity: 0.8; }
+    .siren-center { z-index: 2; font-size: 30px; }
+    .siren-green .siren-light { background: conic-gradient(from 0deg, transparent 0%, #00ff41 20%, transparent 40%); animation: spin 2s linear infinite; }
+    .siren-green { box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); border-color: #005500; }
+    .siren-yellow .siren-light { background: conic-gradient(from 0deg, transparent 0%, #ffcc00 30%, transparent 50%); animation: spin 1s linear infinite; }
+    .siren-yellow { box-shadow: 0 0 40px rgba(255, 204, 0, 0.5); border-color: #aa8800; }
+    .siren-red .siren-light { background: conic-gradient(from 0deg, transparent 0%, #ff0000 40%, transparent 60%); animation: spin 0.4s linear infinite; }
+    .siren-red { box-shadow: 0 0 60px rgba(255, 0, 0, 0.8); border-color: #ff0000; animation: pulseAlert 0.5s infinite alternate; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulseAlert { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+    /* Status Badge */
+    .status-badge { background: rgba(0, 0, 0, 0.7); border: 1px solid #333; padding: 10px 25px; border-radius: 30px; margin-bottom: 40px; display: flex; align-items: center; gap: 12px; font-size: 1em; transition: all 0.5s ease; backdrop-filter: blur(4px); }
+    .status-dot { width: 14px; height: 14px; border-radius: 50%; background-color: #555; }
+    .online { border-color: #00ff00; box-shadow: 0 0 15px rgba(0,255,0,0.3); }
+    .online .status-dot { background-color: #00ff00; animation: pulseGreen 1.5s infinite; }
+    .online-text { color: #00ff00; text-shadow: 0 0 5px #00ff00; }
+    .offline { border-color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.3); }
+    .offline .status-dot { background-color: #ff0000; }
+    .offline-text { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
+
+    /* Dashboard Cards */
+    .dashboard-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; max-width: 1200px; width: 100%; margin-bottom: 30px; }
+    
+    .card { background: rgba(20, 10, 30, 0.9); border-radius: 15px; padding: 30px; width: 250px; text-align: center; border: 1px solid rgba(0, 255, 255, 0.3); box-shadow: 0 0 15px rgba(0, 255, 255, 0.1); backdrop-filter: blur(8px); transition: transform 0.3s, box-shadow 0.3s; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 0 25px rgba(0, 255, 255, 0.4); border-color: rgba(0, 255, 255, 0.8); }
+
+    .icon { font-size: 40px; margin-bottom: 15px; display: block; transition: all 0.5s ease;}
+    .value { font-size: 2.8em; font-weight: bold; text-shadow: 0 0 15px currentColor; display: block;}
+    .label { font-size: 0.8em; color: #ccc; letter-spacing: 2px; margin-top: 10px; font-family: 'Roboto', sans-serif;}
+    .status-ar { font-size: 1.5em; font-weight: bold; margin-top: 5px; display: block;}
+    .temp-cold { color: #00ffff; } .temp-hot { color: #ff4444; } .temp-normal { color: #ffffff; }
+    .umid-color { color: #0088ff; } .gas-safe { color: #00ff9d; } .gas-warning { color: #ffcc00; } .gas-danger { color: #ff0000; }
+    .section-title { width: 100%; text-align: center; margin: 40px 0 30px 0; color: #b05bff; letter-spacing: 3px; border-bottom: 1px solid #333; padding-bottom: 10px; font-weight: bold; }
+
+    .radar-container { width: 100%; max-width: 900px; margin-top: 50px; margin-bottom: 30px; border: 1px solid #b05bff; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(176, 91, 255, 0.2); }
+    .radar-header { background: rgba(20,10,30,0.9); padding: 10px; text-align: center; color: #b05bff; font-weight: bold; border-bottom: 1px solid #333; letter-spacing: 2px; }
+
+    /* Secao de Botoes (IA e Controles) */
+    .ai-section { margin-top: 40px; width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    
+    .actuators-grid { display: flex; flex-wrap: wrap; gap: 15px; width: 100%; justify-content: center; margin-bottom: 10px; }
+    .btn-actuator { flex: 1; min-width: 200px; }
+
+    .btn-ai { background: linear-gradient(90deg, #7d2ae8, #3700b3); color: white; padding: 15px 30px; font-family: 'Orbitron', sans-serif; font-size: 1.1em; border-radius: 8px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; text-transform: uppercase; width: 100%; justify-content: center; border: 1px solid #9e47ff; }
+    .btn-ai:hover { background: linear-gradient(90deg, #9e47ff, #6200ea); transform: scale(1.05); box-shadow: 0 0 15px rgba(158, 71, 255, 0.5); }
+    .btn-ai:disabled { background: #333; cursor: not-allowed; opacity: 0.7; }
+    
+    .btn-danger { background: linear-gradient(90deg, #8B0000, #FF0000); border-color: #ff4444; }
+    .btn-danger:hover { background: linear-gradient(90deg, #FF0000, #ff4444); box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
+
+    .ai-terminal { width: 100%; min-height: 100px; background: rgba(0, 0, 0, 0.85); border: 1px solid #00ff9d; border-radius: 8px; padding: 20px; font-family: 'Roboto', monospace; font-size: 0.95em; color: #00ff9d; box-shadow: inset 0 0 20px rgba(0, 255, 157, 0.1); display: none; position: relative; }
+    .ai-terminal.active { display: block; animation: fadeInTerminal 0.5s ease-out; }
+    .terminal-header { font-size: 0.8em; color: #555; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; }
+    .typing-cursor::after { content: '|'; animation: blink 1s infinite; }
+
+    /* CSS MODAL E SENHA */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(8px); }
+    .modal-box { border: 2px solid #b05bff; box-shadow: 0 0 50px rgba(176, 91, 255, 0.3); background: #0a0a0a; padding: 20px; border-radius: 15px; text-align: center; max-width: 90%; min-width: 300px; }
+    .btn-close { margin-top: 15px; background: #ff0000; border: 1px solid #ff4444; color: white; padding: 10px 30px; font-family: 'Orbitron'; cursor: pointer; border-radius: 5px; }
+    .pass-input { background: #111; border: 1px solid #b05bff; color: #fff; padding: 10px; font-family: 'Orbitron'; font-size: 1.5em; text-align: center; width: 80%; margin-bottom: 20px; outline: none; border-radius: 5px; letter-spacing: 5px; }
+    .pass-input:focus { box-shadow: 0 0 15px rgba(176, 91, 255, 0.5); }
+
+    .footer { background: rgba(10, 5, 16, 0.95); border-top: 1px solid #333; padding: 20px; text-align: center; font-family: 'Roboto', sans-serif; font-size: 0.9em; color: #666; margin-top: auto; position: relative; z-index: 20; }
+    .corp-symbol { font-size: 1.4em; vertical-align: middle; margin-left: 5px; color: #b05bff;}
+    .tigas-sig { color: #b05bff; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+
+    @keyframes floatOrbit { 0% { transform: rotate(0deg) translateX(3px) rotate(0deg); } 50% { transform: rotate(0deg) translateX(-3px) rotate(0deg); } 100% { transform: rotate(0deg) translateX(3px) rotate(0deg); } }
+    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes fadeInTerminal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 650px) { .header { flex-direction: column; gap: 15px; text-align: center; } .brand-area { flex-direction: column; } .info-area { text-align: center; } }
+    
+    /* CSS DOS BOTOES DESLIZANTES COM EFEITO NEON */
+    .switch-container { background: rgba(30, 10, 50, 0.6); border: 1px solid #b05bff; padding: 10px 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex: 1; min-width: 200px; gap: 10px; transition: all 0.3s ease; }
+    .switch-label { font-size: 1.1em; font-family: 'Orbitron', sans-serif; display: flex; align-items: center; gap: 10px; color: #fff; transition: all 0.3s ease; }
+    
+    /* MODO LIGADO - EFEITO NEON BRILHANTE */
+    .switch-container.neon-active { 
+        border-color: #00ff9d; 
+        box-shadow: 0 0 15px rgba(0, 255, 157, 0.5), inset 0 0 10px rgba(0, 255, 157, 0.2); 
+        background: rgba(0, 50, 20, 0.6); 
+    }
+    .switch-container.neon-active .switch-label { 
+        color: #00ff9d; 
+        text-shadow: 0 0 10px #00ff9d; 
+    }
+
+    .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; border: 1px solid #555; }
+    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+    
+    input:checked + .slider { 
+        background-color: #00ff9d; 
+        border-color: #00ff9d; 
+        box-shadow: 0 0 15px #00ff9d, 0 0 30px #00ff9d; 
+    }
+    input:checked + .slider:before { 
+        transform: translateX(26px); 
+        box-shadow: 0 0 10px #ffffff;
+    }
+  </style>
+</head>
+<body onclick="iniciarAudioContext()">
+
+  <canvas id="malha-fundo"></canvas>
+
+  <div id="content-wrapper">
+    <header class="header">
+      <div class="brand-area">
+        <div class="satellite-icon">🛰️</div>
+        <div style="text-align: left;">
+            <div class="brand-text">NODO SENSORIAL</div>
+            <div class="brand-subtitle">ESTUFA CESF</div>
+        </div>
+      </div>
+      <div class="info-area">
+        <div id="relogio-local">--:--:--</div>
+        <div class="location-text">📍 Estado do Paraná</div>
+      </div>
+    </header>
+
+    <div id="password-modal" class="modal-overlay">
+      <div class="modal-box">
+        <h2 style="color: #b05bff; margin-bottom: 10px;">🔒 ACESSO RESTRITO</h2>
+        <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">INSIRA O CÓDIGO DE SEGURANÇA:</p>
+        <input type="password" id="input-senha" class="pass-input" placeholder="******" maxlength="6">
+        <br>
+        <button class="btn-ai" onclick="verificarSenha()" style="width: 100%; justify-content: center;">CONFIRMAR ACESSO</button>
+        <button class="btn-close" onclick="fecharModais()" style="background: transparent; border: none; color: #888; font-size: 0.8em; margin-top: 10px;">CANCELAR</button>
+      </div>
+    </div>
+
+    <div class="external-weather-bar">
+      <div>TEMPERATURA EXTERNA (RUA): <span id="ext-temp" class="ext-data">--</span></div>
+      <div>VENTO: <span id="ext-wind" class="ext-data">--</span></div>
+    </div>
+
+    <main class="main-content">
+      
+      <div id="siren-container" class="siren-container siren-green">
+        <div class="siren-light"></div>
+        <div class="siren-center" id="siren-icon">✅</div>
+      </div>
+
+      <div id="status-badge" class="status-badge offline">
+        <span class="status-dot"></span>
+        <span id="status-text" class="offline-text">BUSCANDO SINAL...</span>
+      </div>
+
+      <div class="dashboard-container">
+        <div class="card" onmouseenter="tocarBip()">
+          <span class="icon" id="temp-icon">🌡️</span>
+          <span class="value" id="temp">--</span>
+          <span class="label">TEMPERATURA (°C)</span>
+        </div>
+        <div class="card" onmouseenter="tocarBip()">
+          <span class="icon">💧</span>
+          <span class="value umid-color" id="umid">--</span>
+          <span class="label">UMIDADE AR (%)</span>
+        </div>
+        <div class="card" onmouseenter="tocarBip()">
+          <span class="icon" id="plant-icon" style="font-size: 60px;">🌱</span>
+          <span class="value umid-color" id="solo" style="color: #2ecc71;">--</span>
+          <span class="label">UMIDADE SOLO (%)</span>
+        </div>
+        <div class="card" onmouseenter="tocarBip()">
+          <span class="icon">☢️</span>
+          <span class="value" id="gas">--</span>
+          <span class="label">LEITURA BRUTA MQ-135</span>
+        </div>
+        <div class="card" onmouseenter="tocarBip()">
+          <span class="icon" id="ar-icon">🌬️</span>
+          <span class="status-ar" id="ar-status">--</span>
+          <span class="label">QUALIDADE DO AR</span>
+        </div>
+      </div>
+
+      <div class="section-title">DETALHAMENTO ESPECTRAL MQ-135 (PPM)</div>
+      <div class="dashboard-container">
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">🚽</span><span class="value gas-safe" id="stat-nh3">--</span><span class="label">AMÔNIA (NH₃)</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">🏭</span><span class="value gas-safe" id="stat-co2">--</span><span class="label">DIÓXIDO DE CARBONO (CO₂)</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">⛽</span><span class="value gas-safe" id="stat-ben">--</span><span class="label">BENZENO (C₆H₆)</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">🍷</span><span class="value gas-safe" id="stat-alc">--</span><span class="label">ÁLCOOL</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">🚗</span><span class="value gas-safe" id="stat-nox">--</span><span class="label">ÓXIDO NÍTRICO (NOx)</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">🌋</span><span class="value gas-safe" id="stat-sul">--</span><span class="label">SULFETO / ENXOFRE</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">💨</span><span class="value gas-safe" id="stat-fum">--</span><span class="label">FUMAÇA</span></div>
+        <div class="card" onmouseenter="tocarBip()"><span class="icon">☠️</span><span class="value gas-safe" id="stat-co">--</span><span class="label">MONÓXIDO DE CARBONO</span></div>
+      </div>
+
+      <div class="update-time">
+        Últimos dados recebidos do Nodo: <span id="hora-leitura">--:--:--</span>
+      </div>
+
+      <div class="radar-container">
+        <div class="radar-header">📡 RADAR TÁTICO - CURITIBA (AO VIVO)</div>
+        <iframe src="https://www.rainviewer.com/map.html?loc=-25.4284,-49.2733,10&oFa=0&oC=0&oU=0&oCS=1&oF=0&oAP=1&c=1&o=83&lm=1&layer=radar&sm=1&sn=1" width="100%" height="450" frameborder="0" style="display:block;"></iframe>
+      </div>
+
+      <div class="ai-section">
+        <div class="section-title" style="margin-top: 0; margin-bottom: 20px;">PAINEL DE ATUAÇÃO</div>
+        
+        <div class="actuators-grid">
+          <div class="switch-container">
+            <span class="switch-label"><span>💡</span> FITA LED</span>
+            <label class="switch">
+              <input type="checkbox" id="checkFita" onchange="tocarClick(); this.closest('.switch-container').classList.toggle('neon-active', this.checked); abrirSolicitacaoSenha('TOGGLE_FITA')">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="switch-container">
+            <span class="switch-label"><span>🌀</span> COOLER</span>
+            <label class="switch">
+              <input type="checkbox" id="checkR1" onchange="tocarClick(); this.closest('.switch-container').classList.toggle('neon-active', this.checked); abrirSolicitacaoSenha('TOGGLE_RELE1')">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="switch-container">
+            <span class="switch-label"><span>🚰</span> BOMBA D'ÁGUA</span>
+            <label class="switch">
+              <input type="checkbox" id="checkR2" onchange="tocarClick(); this.closest('.switch-container').classList.toggle('neon-active', this.checked); abrirSolicitacaoSenha('TOGGLE_RELE2')">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn-ai" id="btn-gerar-relatorio" onclick="tocarClick(); gerarRelatorioFuturista()">
+          <span>🗣️</span> RELATÓRIO DO SISTEMA
+        </button>
+        <button class="btn-ai btn-danger" id="btn-reiniciar" onclick="tocarClick(); abrirSolicitacaoSenha('reinicio')">
+          <span>⚠️</span> REINICIAR NODO (ESP32)
+        </button>
+
+        <div id="ai-terminal" class="ai-terminal">
+          <div class="terminal-header">/// J.A.R.V.I.S. // PROTOCOLO DE ANÁLISE ///</div>
+          <div id="ai-content" class="typing-cursor"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      Criado pelo <span class="tigas-sig">Professor Tigas e sua equipe</span> • Todos os direitos reservados <br>
+      Tigas Corporação <span class="corp-symbol">&copy;</span>
+    </footer>
+  </div>
+
+  <script>
+    // --- SISTEMA DE SENHA PERSONALIZADO E ENVIO DE COMANDOS ---
+    let acaoPendente = ""; 
+    function abrirSolicitacaoSenha(acao) {
+      acaoPendente = acao;
+      document.getElementById('password-modal').style.display = 'flex';
+      document.getElementById('input-senha').value = ""; 
+      document.getElementById('input-senha').focus();
+    }
+
+    function verificarSenha() {
+      const senha = document.getElementById('input-senha').value;
+      if (senha === "363938") {
+        document.getElementById('password-modal').style.display = 'none';
+        executarAcaoPendente();
+      } else {
+        alert("❌ ACESSO NEGADO. CÓDIGO INCORRETO.");
+        document.getElementById('input-senha').value = "";
+      }
+    }
+
+    function executarAcaoPendente() { 
+        if (typeof google === 'undefined') return;
+
+        if (acaoPendente === 'reinicio') {
+            google.script.run.withSuccessHandler(() => {
+                alert("✅ COMANDO ENVIADO.\nO SISTEMA REINICIARÁ EM BREVE.");
+            }).setCommand("RESTART");
+        } else {
+            // Lógica para todos os outros botões (Fita e Relés)
+            google.script.run.withSuccessHandler(() => {
+                alert("✅ COMANDO ENVIADO!\nAguarde a próxima atualização de leitura.");
+            }).setCommand(acaoPendente);
+        }
+    } 
+    
+    function fecharModais() { document.getElementById('password-modal').style.display = 'none'; }
+    document.getElementById("input-senha").addEventListener("keypress", function(event) { if (event.key === "Enter") verificarSenha(); });
+
+    // --- AUDIO SFX ---
+    let audioCtx; let alarmOscillator = null; let alarmInterval = null;
+    let estadoAlarmeAtual = "BOM"; // Controla para não repetir sons à toa
+
+    function iniciarAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    
+    function tocarBip() { iniciarAudioContext(); if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.setValueAtTime(2000, audioCtx.currentTime); g.gain.setValueAtTime(0.05, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.1); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.1); }
+    
+    function tocarClick() { iniciarAudioContext(); if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='square'; o.frequency.setValueAtTime(150, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.15); }
+    
+    // Novo alerta leve (uma vez, som tranquilo e brando)
+    function tocarAlertaLeve() { 
+        iniciarAudioContext(); if (!audioCtx) return; 
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); 
+        o.type = 'sine'; const t = audioCtx.currentTime; 
+        o.frequency.setValueAtTime(600, t); o.frequency.exponentialRampToValueAtTime(300, t + 1.0); 
+        g.gain.setValueAtTime(0.3, t); g.gain.linearRampToValueAtTime(0.001, t + 1.0); 
+        o.connect(g); g.connect(audioCtx.destination); 
+        o.start(t); o.stop(t + 1.0); 
+    }
+
+    // Sirene de perigo (rápida, contínua e agressiva)
+    function tocarSirene() { 
+        iniciarAudioContext(); if (!audioCtx || alarmOscillator) return; 
+        alarmOscillator = audioCtx.createOscillator(); const g = audioCtx.createGain(); 
+        alarmOscillator.type = 'square'; g.gain.value = 0.2; 
+        
+        alarmInterval = setInterval(() => { 
+            if(alarmOscillator && audioCtx) { 
+                const t = audioCtx.currentTime; 
+                alarmOscillator.frequency.setValueAtTime(800, t); 
+                alarmOscillator.frequency.linearRampToValueAtTime(1500, t+0.15); 
+                alarmOscillator.frequency.linearRampToValueAtTime(800, t+0.3); 
+            } 
+        }, 300); // Loop bem rápido (300ms)
+        
+        alarmOscillator.connect(g); g.connect(audioCtx.destination); alarmOscillator.start(); 
+    }
+    
+    function pararSirene() { 
+        if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; } 
+        if (alarmOscillator) { try { alarmOscillator.stop(); alarmOscillator.disconnect(); } catch(e) {} alarmOscillator = null; } 
+    }
+
+    // --- LÓGICA DO JARVIS (HOMEM DE FERRO) ---
+
+    function gerarRelatorioFuturista() {
+      iniciarAudioContext();
+      const btn = document.getElementById('btn-gerar-relatorio');
+      const terminal = document.getElementById('ai-terminal');
+      const contentDiv = document.getElementById('ai-content');
+      
+      // Coleta TODOS os dados reais do momento
+      let gasVal = parseInt(document.getElementById('gas').innerText) || 0;
+      let tempVal = parseFloat(document.getElementById('temp').innerText) || 25;
+      let umidVal = parseFloat(document.getElementById('umid').innerText) || 50;
+      let soloVal = parseInt(document.getElementById('solo').innerText) || 50;
+
+      btn.disabled = true;
+      btn.innerHTML = "<span>📡</span> COMPILANDO DADOS...";
+      terminal.classList.add('active');
+      contentDiv.innerText = "Estabelecendo link neural com o Nodo Sensorial...";
+
+      setTimeout(() => {
+        let relatorio = "";
+        
+        // 1. SAUDAÇÃO (Estilo J.A.R.V.I.S. - Com Senhor)
+        const saudacoes = [
+            "À sua disposição, Senhor. ",
+            "Sistemas online e prontos, Senhor. ",
+            "Sempre um privilégio, Senhor. Iniciando a varredura. ",
+            "Protocolo de análise do Nodo Sensorial em andamento, Senhor. "
+        ];
+        relatorio += saudacoes[Math.floor(Math.random() * saudacoes.length)];
+
+        // 2. LÓGICA DO GÁS / QUALIDADE DO AR (Sem Senhor no meio)
+        if (gasVal < 800) {
+            const arBons = [
+                `A qualidade do ar no Nodo Sensorial está impecável, marcando ${gasVal} PPM. Sem sinais de toxicidade. `,
+                `A atmosfera interna está perfeitamente limpa e estável em ${gasVal} PPM. `
+            ];
+            relatorio += arBons[Math.floor(Math.random() * arBons.length)];
+            terminal.style.borderColor = "#00ff41"; terminal.style.color = "#00ff41";
+        } else if (gasVal < 1800) {
+            const arAviso = [
+                `Detecto uma ligeira elevação nos compostos do ar, marcando ${gasVal} PPM. Sugiro manter sob observação. `,
+                `Há uma leve anomalia atmosférica no nível de ${gasVal} PPM. Nada que comprometa a integridade estrutural por enquanto. `
+            ];
+            relatorio += arAviso[Math.floor(Math.random() * arAviso.length)];
+            terminal.style.borderColor = "#ffcc00"; terminal.style.color = "#ffcc00";
+        } else {
+            const arPerigo = [
+                `Alerta crítico! A toxicidade do ar atingiu perigosos ${gasVal} PPM. Exaustão de emergência recomendada. `,
+                `Os níveis de gás estão fora das tolerâncias seguras, marcando ${gasVal} PPM. O ambiente tornou-se hostil. `
+            ];
+            relatorio += arPerigo[Math.floor(Math.random() * arPerigo.length)];
+            terminal.style.borderColor = "#ff0000"; terminal.style.color = "#ff0000";
+        }
+
+        // 3. LÓGICA DE TEMPERATURA E UMIDADE DO AR (Sem Senhor no meio)
+        if (tempVal >= 20 && tempVal <= 30) {
+            const tempBoa = [
+                `A temperatura encontra-se estabilizada em ${tempVal} graus, com a umidade atmosférica na casa dos ${umidVal} por cento. `,
+                `Clima térmico otimizado. Marcando ${tempVal} graus Celsius e umidade em ${umidVal} por cento. `
+            ];
+            relatorio += tempBoa[Math.floor(Math.random() * tempBoa.length)];
+        } else if (tempVal < 20) {
+            relatorio += `O ambiente está mais frio que o ideal, operando em ${tempVal} graus e ${umidVal} por cento de umidade. `;
+        } else {
+            relatorio += `Há um aquecimento excessivo de ${tempVal} graus, com umidade de ${umidVal} por cento. O acionamento do cooler é aconselhável. `;
+        }
+
+        // 4. LÓGICA DE UMIDADE DO SOLO (A Planta - Sem Senhor no meio)
+        if (soloVal >= 30 && soloVal <= 80) {
+            const soloBom = [
+                `A hidratação da terra é excelente, operando em ${soloVal} por cento. O alvo botânico apresenta sinais vitais perfeitos. `,
+                `O solo mantém uma umidade de ${soloVal} por cento. Condições hídricas dentro dos parâmetros de excelência. `
+            ];
+            relatorio += soloBom[Math.floor(Math.random() * soloBom.length)];
+        } else if (soloVal < 30) {
+            const soloSeco = [
+                `O solo está criticamente seco, apresentando apenas ${soloVal} por cento de água. Os protocolos de irrigação devem ser acionados. `,
+                `A umidade da terra caiu vertiginosamente para ${soloVal} por cento. Intervenção hídrica imediata é necessária. `
+            ];
+            relatorio += soloSeco[Math.floor(Math.random() * soloSeco.length)];
+        } else {
+            const soloEncharcado = [
+                `O solo apresenta saturação de ${soloVal} por cento. Risco eminente de afogamento botânico. `,
+                `Excesso de água detectado. O nível está em ${soloVal} por cento. Desativar a bomba d'água é essencial. `
+            ];
+            relatorio += soloEncharcado[Math.floor(Math.random() * soloEncharcado.length)];
+        }
+
+        // 5. ENCERRAMENTO (Frases marcantes do J.A.R.V.I.S. - Com Senhor)
+        const encerramentos = [
+            "Como sempre, Senhor, um grande privilégio.",
+            "Todos os demais sistemas operam na mais absoluta perfeição. Mais alguma coisa, Senhor?",
+            "Sigo monitorando os protocolos de segurança. Tenha um bom dia, Senhor.",
+            "Posso sugerir que não fique acordado trabalhando até tão tarde hoje, Senhor?",
+            "Lembre-se, Senhor: às vezes é preciso correr antes de saber andar.",
+            "Farei os cálculos para os próximos ciclos. Tudo está sob controle, Senhor."
+        ];
+        relatorio += encerramentos[Math.floor(Math.random() * encerramentos.length)];
+
+        // Executa visual e áudio
+        typeWriterEffect(relatorio, contentDiv);
+        falarTexto(relatorio);
+        btn.disabled = false;
+        btn.innerHTML = "<span>🗣️</span> NOVO RELATÓRIO";
+      }, 1500);
+    }
+
+    function falarTexto(texto) { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const fala = new SpeechSynthesisUtterance(texto); fala.lang = 'pt-BR'; fala.rate = 1.0; fala.pitch = 0.6; window.speechSynthesis.speak(fala); } }
+    function typeWriterEffect(text, element) { element.innerText = ""; let i = 0; function typing() { if (i < text.length) { element.innerHTML += text.charAt(i); i++; setTimeout(typing, 20); } } typing(); }
+
+    function buscarTempoExterno() {
+      fetch("https://api.open-meteo.com/v1/forecast?latitude=-25.45&longitude=-49.52&current_weather=true&timezone=America%2FSao_Paulo")
+      .then(r => r.json()).then(d => {
+        document.getElementById('ext-temp').innerText = d.current_weather.temperature + "°C";
+        document.getElementById('ext-wind').innerText = d.current_weather.windspeed + " km/h";
+      }).catch(e => console.log("Erro API Tempo"));
+    }
+    function atualizarRelogio() { document.getElementById('relogio-local').innerText = new Date().toLocaleTimeString('pt-BR'); }
+
+    // --- COMUNICAÇÃO COM O GOOGLE APPS SCRIPT ---
+    function atualizarDashboard() {
+        if (typeof google !== 'undefined') {
+            google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getDadosAtualizados();
+        }
+    }
+
+    function onSuccess(dados) {
+        document.getElementById('temp').innerText = dados.temp;
+        document.getElementById('umid').innerText = dados.umid;
+        document.getElementById('gas').innerText = dados.gas;
+        if(dados.hora) document.getElementById('hora-leitura').innerText = dados.hora;
+        
+        // Atualiza botões baseados na planilha e aplica o efeito neon ativo
+        document.getElementById("checkFita").checked = dados.fita;
+        document.getElementById("checkFita").closest('.switch-container').classList.toggle('neon-active', dados.fita);
+
+        document.getElementById("checkR1").checked = dados.r1;
+        document.getElementById("checkR1").closest('.switch-container').classList.toggle('neon-active', dados.r1);
+
+        document.getElementById("checkR2").checked = dados.r2;
+        document.getElementById("checkR2").closest('.switch-container').classList.toggle('neon-active', dados.r2);
+
+        const statusBadge = document.getElementById('status-badge');
+        const statusText = document.getElementById('status-text');
+        const tempIcon = document.getElementById('temp-icon');
+        const tempEl = document.getElementById('temp');
+        const plantIcon = document.getElementById('plant-icon');
+        const soloEl = document.getElementById('solo');
+        const gasEl = document.getElementById('gas');
+        const arStatus = document.getElementById('ar-status');
+        const arIcon = document.getElementById('ar-icon');
+        const sirenContainer = document.getElementById('siren-container');
+        const sirenIcon = document.getElementById('siren-icon');
+        
+        // Badge Status
+        if(dados.status === true) {
+            statusBadge.className = "status-badge online"; 
+            statusText.innerText = "SISTEMA ONLINE"; 
+            statusText.className = "online-text";
+        } else {
+            statusBadge.className = "status-badge offline"; 
+            statusText.innerText = "SISTEMA OFFLINE"; 
+            statusText.className = "offline-text";
+        }
+
+        // Temperatura
+        let tempReal = parseFloat(dados.temp);
+        tempEl.className = "value";
+        if (dados.temp != "--") {
+            if (tempReal < 20) { tempEl.classList.add("temp-cold"); tempIcon.innerText = "❄️"; }
+            else if (tempReal > 30) { tempEl.classList.add("temp-hot"); tempIcon.innerText = "🔥"; }
+            else { tempEl.classList.add("temp-normal"); tempIcon.innerText = "🌡️"; }
+        }
+
+        // Lógica do Solo e Planta
+        let soloReal = parseInt(dados.solo);
+        if (dados.solo && dados.solo != "--") {
+            soloEl.innerText = dados.solo;
+            if (soloReal < 30) {
+                plantIcon.innerText = "🥀";
+                plantIcon.style.filter = "grayscale(80%) sepia(50%)";
+                plantIcon.style.transform = "rotate(15deg) scale(0.9)";
+                soloEl.style.color = "#ff4444";
+            } else if (soloReal > 80) {
+                plantIcon.innerText = "🪴";
+                plantIcon.style.filter = "none";
+                plantIcon.style.transform = "scale(1.1)";
+                soloEl.style.color = "#00d4ff";
+            } else {
+                plantIcon.innerText = "🌿";
+                plantIcon.style.filter = "none";
+                plantIcon.style.transform = "scale(1)";
+                soloEl.style.color = "#2ecc71";
+            }
+        } else {
+             soloEl.innerText = "--";
+        }
+
+        // Lógica Gás e Sirene (Atualizada com Estado de Memória para não repetir som)
+        let gasReal = parseInt(dados.gas);
+        gasEl.className = "value";
+        arStatus.className = "status-ar";
+        
+        if (dados.gas != "--") {
+            if (gasReal <= 800) { 
+                gasEl.classList.add("gas-safe"); 
+                arStatus.innerText = "BOM / LIMPO"; 
+                arStatus.classList.add("gas-safe"); 
+                arIcon.innerText = "🍃";
+                sirenContainer.className = "siren-container siren-green";
+                sirenIcon.innerText = "✅";
+                
+                // Se o ar ficou limpo, cala a boca da sirene e salva o estado
+                if (estadoAlarmeAtual !== "BOM") {
+                    pararSirene();
+                    estadoAlarmeAtual = "BOM";
+                }
+            } 
+            else if (gasReal > 800 && gasReal < 1800) { 
+                gasEl.classList.add("gas-warning"); 
+                arStatus.innerText = "ATENÇÃO"; 
+                arStatus.classList.add("gas-warning"); 
+                arIcon.innerText = "😷";
+                sirenContainer.className = "siren-container siren-yellow";
+                sirenIcon.innerText = "⚠️";
+                
+                // Se acabou de entrar em ATENÇÃO, toca o alerta leve uma única vez
+                if (estadoAlarmeAtual !== "ATENCAO") {
+                    pararSirene(); // Para o alarme de perigo se ele estava tocando antes
+                    tocarAlertaLeve();
+                    estadoAlarmeAtual = "ATENCAO";
+                }
+            } 
+            else { 
+                gasEl.classList.add("gas-danger"); 
+                arStatus.innerText = "PERIGO / TÓXICO"; 
+                arStatus.classList.add("gas-danger"); 
+                arIcon.innerText = "☠️";
+                sirenContainer.className = "siren-container siren-red";
+                sirenIcon.innerText = "🚨";
+                
+                // Se acabou de entrar em PERIGO, dispara a sirene enlouquecida
+                if (estadoAlarmeAtual !== "PERIGO") {
+                    tocarSirene(); 
+                    estadoAlarmeAtual = "PERIGO";
+                }
+            }
+        }
+
+        // --- CÁLCULO REALÍSTICO COM BASE NAS CURVAS DO DATASHEET DO MQ-135 ---
+        let vOut = gasReal * (3.3 / 4095.0);
+        if(vOut < 0.01) vOut = 0.01; 
+        
+        let rs = (3.3 - vOut) / vOut; 
+        let r0 = 4.0; 
+        let ratio = rs / r0;
+        if(ratio <= 0.01) ratio = 0.01;
+
+        const tabelaGases = [
+            { id: 'stat-nh3', calc: 102.2 * Math.pow(ratio, -2.473) },
+            { id: 'stat-co2', calc: 400.0 + (110.47 * Math.pow(ratio, -2.862)) }, 
+            { id: 'stat-ben', calc: 44.94 * Math.pow(ratio, -3.445) },
+            { id: 'stat-alc', calc: 77.25 * Math.pow(ratio, -3.18) },
+            { id: 'stat-nox', calc: 35.0 * Math.pow(ratio, -3.3) }, 
+            { id: 'stat-sul', calc: 40.0 * Math.pow(ratio, -3.0) },
+            { id: 'stat-fum', calc: 30.0 * Math.pow(ratio, -3.2) },
+            { id: 'stat-co',  calc: 150.0 * Math.pow(ratio, -2.5) }
+        ];
+
+        tabelaGases.forEach(item => {
+            const el = document.getElementById(item.id);
+            if (dados.gas == "--" || gasReal < 50) {
+                el.innerText = (item.id === 'stat-co2') ? "400.0" : "--"; 
+                el.className = "value gas-safe"; 
+            } else {
+                let valorFinal = item.calc.toFixed(1);
+                el.innerText = valorFinal;
+                el.className = "value";
+                
+                if (gasReal <= 800) el.classList.add("gas-safe");
+                else if (gasReal < 1800) el.classList.add("gas-warning");
+                else el.classList.add("gas-danger");
+            }
+        });
+    }
+
+    function onFailure(e) { console.log(e); }
+
+    window.addEventListener('load', function() {
+      setInterval(atualizarRelogio, 1000);
+      atualizarRelogio();
+      atualizarDashboard();
+      buscarTempoExterno(); 
+      setInterval(atualizarDashboard, 5000); 
+      setInterval(buscarTempoExterno, 600000); 
+    });
+  </script>
+
+  <script>
+    (function() {
+      const canvas = document.getElementById('malha-fundo'); if (!canvas) return;
+      const ctx = canvas.getContext('2d'); let width, height; let points = []; let mouse = { x: 0, y: 0 };
+      const gap = 50; const speed = 0.0015; const waveHeight = 25; 
+      function init() { resize(); window.addEventListener('resize', resize); window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; }); animate(); }
+      function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; createGrid(); }
+      function createGrid() { points = []; for (let y = 0; y < height + gap; y += gap) { let row = []; for (let x = 0; x < width + gap; x += gap) { row.push({x: x, y: y, originX: x, originY: y}); } points.push(row); } }
+      function animate() {
+        ctx.clearRect(0, 0, width, height); const time = Date.now() * speed; ctx.strokeStyle = '#bd00ff'; ctx.shadowBlur = 10; ctx.shadowColor = '#bd00ff'; ctx.lineWidth = 1;
+        for (let i = 0; i < points.length; i++) {
+          ctx.beginPath();
+          for (let j = 0; j < points[i].length; j++) {
+            const p = points[i][j]; const dx = p.originX - mouse.x; const dy = p.originY - mouse.y; const dist = Math.sqrt(dx * dx + dy * dy);
+            const wave = Math.sin(time + (p.originX * 0.015) + (p.originY * 0.015)) * waveHeight; const mouseEffect = Math.max(0, 400 - dist) / 400; 
+            const repelX = (dx / dist) * mouseEffect * 40; const repelY = (dy / dist) * mouseEffect * 40;
+            p.x = p.originX + repelX; p.y = p.originY + wave + repelY;
+            if (j === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            if (i > 0) { const pAbove = points[i-1][j]; ctx.moveTo(p.x, p.y); ctx.lineTo(pAbove.x, pAbove.y); }
+          }
+          ctx.stroke();
+        } requestAnimationFrame(animate);
+      } init();
+    })();
+  </script>
+</body>
+</html>
