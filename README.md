@@ -1,38 +1,20 @@
-# Projeto de Monitoramento IoT: ESP32 e Google Sheets
+# README.md - Documentação Técnica
 
-## Visão Geral
-Este projeto implementa um sistema de aquisição de dados via Internet das Coisas (IoT). O microcontrolador (ESP32) coleta informações de sensores e transmite os dados para uma planilha do Google via protocolo HTTP. O sistema é composto por uma API de backend, uma interface de visualização e o firmware do hardware.
+## Visão Geral do Projeto
+Este projeto integra um sistema de automação para estufas baseado em monitoramento IoT. A estrutura é dividida em três pilares fundamentais para a comunicação e controle.
 
 ## Estrutura do Repositório
-- `Código.gs`: Backend e API (Google Apps Script).
-- `index.html`: Interface de usuário (Dashboard).
-- `esp.ino`: Código fonte do microcontrolador (ESP32).
 
-## Detalhamento dos Componentes
+### Código.gs (Backend)
+Atua como o servidor no ecossistema Google Apps Script. É responsável por receber os dados enviados pelo hardware, armazená-los de forma organizada na planilha de registro e mediar a comunicação entre a interface web e o microcontrolador.
 
-### 1. Código.gs (Google Apps Script)
-Atua como o servidor de API.
-- **Função `doPost(e)`:** Recebe requisições HTTP POST vindas do ESP32, interpreta o payload (dados dos sensores) e grava uma nova linha na Planilha Google.
-- **Função `doGet(e)`:** Gerencia requisições GET para servir a página `index.html` ou fornecer dados estruturados (JSON) para a interface.
+### index.html (Interface)
+Consiste no painel de controle (dashboard) acessível via navegador. Sua função é apresentar os dados coletados em tempo real, exibir o status operacional do sistema e fornecer os comandos de controle para que o usuário possa interagir com a estufa.
 
-### 2. index.html
-Interface Web (Client-side).
-- Renderiza o painel de controle e visualização dos dados.
-- Utiliza JavaScript para realizar chamadas assíncronas ao `Código.gs` (via `google.script.run`) ou requisições Fetch para obter dados atualizados da planilha.
-
-### 3. esp.ino (Firmware)
-Código embarcado para o hardware ESP32.
-- **Conectividade:** Gerencia a conexão Wi-Fi.
-- **Leitura de Sensores:** Executa a leitura das portas analógicas/digitais.
-- **Transmissão:** Utiliza a biblioteca `HTTPClient.h` para realizar envios periódicos de dados via requisições POST para a URL do Google Apps Script.
-
-## Fluxo de Dados
-1. **Coleta:** O ESP32 lê os valores dos sensores.
-2. **Envio:** O ESP32 envia os dados via HTTP POST para o endpoint do Script.
-3. **Armazenamento:** O `Código.gs` recebe os dados e os registra na Planilha Google vinculada.
-4. **Visualização:** O `index.html` exibe as informações processadas ao usuário.
+### esp.c++ (Firmware)
+Código fonte embarcado no microcontrolador ESP32. Este componente gerencia a leitura dos sensores físicos, mantém a conexão com a rede Wi-Fi, transmite os dados de telemetria para o servidor e processa as instruções de controle recebidas para atuar nos dispositivos da estufa.
 
 ## Pré-requisitos
-- **Google Sheets:** Planilha configurada com as colunas correspondentes aos dados enviados.
-- **Google Apps Script:** Script implantado como "WebApp" (acesso público para "Qualquer pessoa" para permitir que o ESP32 envie dados).
-- **Bibliotecas Arduino:** `WiFi.h` e `HTTPClient.h` instaladas no ambiente de desenvolvimento do ESP32.
+*   **Google Sheets:** Planilha configurada com as colunas correspondentes aos dados enviados.
+*   **Google Apps Script:** Script implantado como "WebApp" (acesso público para "Qualquer pessoa" para permitir que o ESP32 envie dados).
+*   **Bibliotecas Arduino:** WiFi.h e HTTPClient.h instaladas no ambiente de desenvolvimento do ESP32.
