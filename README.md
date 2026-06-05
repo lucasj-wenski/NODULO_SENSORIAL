@@ -11,7 +11,7 @@ Atua como o servidor no ecossistema Google Apps Script. É responsável por rece
 ### index.html (Interface)
 Consiste no painel de controle (dashboard) acessível via navegador. Sua função é apresentar os dados coletados em tempo real, exibir o status operacional do sistema e fornecer os comandos de controle para que o usuário possa interagir com a estufa.
 
-### esp.c++ (Firmware)
+### esp.cpp (Firmware)
 Código fonte embarcado no microcontrolador ESP32. Este componente gerencia a leitura dos sensores físicos, mantém a conexão com a rede Wi-Fi, transmite os dados de telemetria para o servidor e processa as instruções de controle recebidas para atuar nos dispositivos da estufa.
 
 ## Pré-requisitos
